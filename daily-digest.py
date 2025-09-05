@@ -62,7 +62,7 @@ def generate_digest_markdown(articles):
 def post_to_wordpress(title, content):
     """Posts a new article to a WordPress site via its REST API."""
     # This is a placeholder URL. Replace it with your actual WordPress site URL.
-    wordpress_url = "https://your-wordpress-site.com/wp-json/wp/v2/posts"
+    wordpress_url = "https://manangupta2607-pjdqx.wordpress.com/wp-json/wp/v2/posts"
     
     # Replace with your WordPress username
     username = "manangupta2607"
