@@ -1,6 +1,10 @@
 name: Daily News Digest
 
 on:
+  push:
+    branches:
+      - main
+
   schedule:
     - cron: '2 18 * * *'
   workflow_dispatch:
