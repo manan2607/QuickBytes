@@ -65,7 +65,7 @@ def post_to_wordpress(title, content):
     wordpress_url = "https://your-wordpress-site.com/wp-json/wp/v2/posts"
     
     # Replace with your WordPress username
-    username = "manangupta.2607@gmail.com"
+    username = "manangupta2607"
     password = os.environ.get("WORDPRESS_APP_PASSWORD")
     
     if not password:
