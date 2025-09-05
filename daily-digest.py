@@ -5,10 +5,12 @@ from datetime import datetime
 from transformers import pipeline
 
 def fetch_top_headlines():
+    """Fetches top 5-10 headlines using a free news API."""
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
     
+    # Using NewsAPI.org. You can replace with another service if needed.
     url = f"https://newsapi.org/v2/top-headlines?country=us&apiKey={news_api_key}"
     try:
         response = requests.get(url)
@@ -20,7 +22,9 @@ def fetch_top_headlines():
         return []
 
 def summarize_article(text):
+    """Summarizes an article using the Hugging Face model."""
     try:
+        # Load the summarization model from Hugging Face
         summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
         summary = summarizer(text, max_length=130, min_length=40, do_sample=False)
         return summary[0]["summary_text"]
@@ -29,6 +33,7 @@ def summarize_article(text):
         return "Summary not available."
 
 def generate_digest_markdown(articles):
+    """Generates the full Markdown content for the blog post."""
     today = datetime.now().strftime("%B %d, %Y")
     
     markdown_content = f"# 🌍 Today in 2 Minutes – {today}\n\n"
@@ -55,14 +60,18 @@ def generate_digest_markdown(articles):
     return markdown_content
 
 def post_to_wordpress(title, content):
+    """Posts a new article to a WordPress site via its REST API."""
+    # This is a placeholder URL. Replace it with your actual WordPress site URL.
     wordpress_url = "https://your-wordpress-site.com/wp-json/wp/v2/posts"
     
+    # Replace with your WordPress username
     username = "manangupta.2607@gmail.com"
     password = os.environ.get("WORDPRESS_APP_PASSWORD")
     
     if not password:
         raise ValueError("WORDPRESS_APP_PASSWORD environment variable not set.")
 
+    # The updated credentials line
     credentials = f"{username}:{password}"
     token = base64.b64encode(credentials.encode()).decode("utf-8")
     
@@ -90,6 +99,8 @@ if __name__ == "__main__":
     articles = fetch_top_headlines()
     digest_content = generate_digest_markdown(articles)
     
+    # We still need a title for the blog post
     post_title = f"Pocket-Sized News Digest – {datetime.now().strftime('%B %d, %Y')}"
     
+    # Post the content to WordPress
     post_to_wordpress(post_title, digest_content)
