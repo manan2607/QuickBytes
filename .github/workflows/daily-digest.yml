@@ -6,18 +6,15 @@ on:
   push:
     branches:
       - main
-      
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -29,10 +26,20 @@ jobs:
       - name: Generate daily digest
         env:
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
-          WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
         run: python daily-digest.py
 
-      - name: Commit and push changes (optional, for record keeping)
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
         with:
-          commit_message: 'Feat: Automated daily news digest update 🤖'
+          path: '_posts'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
