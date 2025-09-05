@@ -1,25 +1,23 @@
 name: Daily News Digest
 
 on:
+  schedule:
+    - cron: '0 1 * * *'
   push:
     branches:
       - main
-
-  schedule:
-    - cron: '2 18 * * *'
+      
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     permissions:
       contents: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -31,9 +29,10 @@ jobs:
       - name: Generate daily digest
         env:
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
         run: python daily-digest.py
 
-      - name: Commit and push changes
+      - name: Commit and push changes (optional, for record keeping)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'Feat: Automated daily news digest update 🤖'
