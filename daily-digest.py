@@ -3,32 +3,42 @@ import requests
 from datetime import datetime
 from transformers import pipeline
 import random
+import trafilatura
 
 def fetch_diverse_news():
-    """Fetches a diverse set of news articles by topic and shuffles them."""
+    """Fetches a diverse set of news articles by using specific queries."""
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
     
-    topics = [
-        "artificial intelligence",
-        "climate change",
-        "global economy",
-        "scientific discovery",
-        "international politics",
-        "space exploration",
-        "medical research",
-        "movie industry",
-        "sports",
-        "culture"
+    # A list of specific queries to ensure diversity and relevance
+    queries = [
+        "artificial intelligence AND (robotics OR machine learning OR ethics)",
+        "climate change AND (policy OR environment OR green energy)",
+        "global economy AND (trade OR stocks OR interest rates)",
+        "scientific discovery AND (astronomy OR physics OR biology)",
+        "international politics AND (diplomacy OR election OR conflict)",
+        "space exploration AND (NASA OR SpaceX OR Mars mission)",
+        "medical research AND (new treatment OR chronic diseases OR health)",
+        "movie industry AND (new films OR box office OR film festival)",
+        "sports AND (championships OR Olympics OR football OR basketball)",
+        "culture AND (art exhibit OR music concert OR social trends)"
     ]
     
-    base_url = "https://newsapi.org/v2/everything"
-    all_articles = []
+    # Curated list of international news sources.
+    sources = [
+        "bbc-news", "reuters", "the-guardian-uk", "the-washington-post",
+        "associated-press", "abc-news-au", "financial-times", "wired"
+    ]
+    source_string = ",".join(sources)
     
-    for topic in topics:
+    all_articles = []
+    base_url = "https://newsapi.org/v2/everything"
+    
+    for query in queries:
         params = {
-            "q": topic,
+            "q": query,
+            "sources": source_string,
             "sortBy": "publishedAt",
             "language": "en",
             "pageSize": 2,
@@ -41,9 +51,9 @@ def fetch_diverse_news():
             data = response.json()
             all_articles.extend(data.get("articles", []))
         except requests.RequestException as e:
-            print(f"Error fetching news for topic '{topic}': {e}")
+            print(f"Error fetching news for query '{query}': {e}")
             
-    # Filter out articles with non-news phrases or sources
+    # Filter out articles from low-quality sources and with non-news phrases
     banned_sources = [
         "google news", "google news (india)", "etf daily news",
         "prnewswire", "globenewswire", "marketwatch", "free republic"
@@ -62,6 +72,17 @@ def fetch_diverse_news():
     shuffled_articles.sort(key=lambda x: x['publishedAt'], reverse=True)
     
     return shuffled_articles[:10]
+
+def get_full_article_content(url):
+    """Scrapes the full text of an article from its URL."""
+    try:
+        downloaded = trafilatura.fetch_url(url)
+        if downloaded:
+            return trafilatura.extract(downloaded, favor_recall=True, include_comments=False, include_tables=False)
+        return None
+    except Exception as e:
+        print(f"Error scraping article content from {url}: {e}")
+        return None
 
 def summarize_article(text):
     """Summarizes an article using the Hugging Face model."""
@@ -86,7 +107,7 @@ def generate_html_digest(articles):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickBytess Daily Digest – {today}</title>
+    <title>ByteBriefs Daily Digest – {today}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Roboto&display=swap" rel="stylesheet">
@@ -167,7 +188,7 @@ def generate_html_digest(articles):
 </head>
 <body>
     <div class="container">
-        <h1>QuickBytess Daily Digest – {today}</h1>
+        <h1>ByteBriefs Daily Digest – {today}</h1>
         <p class="summary">Your daily dose of the most important headlines, curated and summarized in just a few minutes.</p>
         <hr style="border-color: #333;">
 """
@@ -176,9 +197,10 @@ def generate_html_digest(articles):
             title = article.get("title", "No Title")
             source = article.get("source", {}).get("name", "Unknown Source")
             url = article.get("url", "#")
-            description = article.get("description", "")
             
-            summary = summarize_article(description)
+            full_content = get_full_article_content(url)
+            
+            summary = summarize_article(full_content) if full_content else article.get("description", "Summary not available.")
             
             html_content += f"""
         <div class="article-item">
@@ -197,7 +219,7 @@ def generate_html_digest(articles):
     html_content += f"""
         <div class="cta">
             <hr style="border-color: #333;">
-            <p>💌 Like this QuickBytes? <br> Get it daily in your inbox for FREE → <a class="cta-link" href="#">Subscribe Here</a></p>
+            <p>💌 Like this ByteBrief? <br> Get it daily in your inbox for FREE → <a class="cta-link" href="#">Subscribe Here</a></p>
         </div>
     </div>
 </body>
