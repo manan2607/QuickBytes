@@ -5,6 +5,14 @@ from transformers import pipeline
 import random
 import trafilatura
 
+# Global summarizer pipeline to avoid reloading the model multiple times
+try:
+    global_summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    print("Summarization model loaded successfully.")
+except Exception as e:
+    global_summarizer = None
+    print(f"Error loading summarization model: {e}")
+
 def fetch_diverse_news():
     """Fetches a diverse set of news articles from specific global sources."""
     news_api_key = os.environ.get("NEWS_API_KEY")
@@ -65,6 +73,21 @@ def fetch_diverse_news():
     
     return shuffled_articles[:10]
 
+def summarize_article(text):
+    """Summarizes an article using the global Hugging Face model."""
+    if not text or len(text) < 100 or global_summarizer is None:
+        return text
+
+    try:
+        summary = global_summarizer(text, max_length=60, min_length=40, do_sample=False)
+        if summary and 'summary_text' in summary[0]:
+            return summary[0]["summary_text"]
+        else:
+            return text
+    except Exception as e:
+        print(f"Error summarizing text: {e}")
+        return text
+
 def get_full_article_content(url):
     """Scrapes the full text of an article from its URL."""
     try:
@@ -75,19 +98,6 @@ def get_full_article_content(url):
     except Exception as e:
         print(f"Error scraping article content from {url}: {e}")
         return None
-
-def summarize_article(text):
-    """Summarizes an article using the Hugging Face model."""
-    if not text or len(text) < 100:
-        return text
-
-    try:
-        summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-        summary = summarizer(text, max_length=60, min_length=40, do_sample=False)
-        return summary[0]["summary_text"]
-    except Exception as e:
-        print(f"Error summarizing text: {e}")
-        return "Summary not available."
 
 def generate_html_digest(articles):
     """Generates the full HTML content for the blog post."""
