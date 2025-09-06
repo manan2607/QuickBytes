@@ -43,7 +43,14 @@ def fetch_diverse_news():
         except requests.RequestException as e:
             print(f"Error fetching news for topic '{topic}': {e}")
             
-    unique_articles = {article['url']: article for article in all_articles}.values()
+    # Filter out articles with non-news phrases
+    non_news_phrases = ["bulletin", "quiz", "podcast", "review of", "the daily"]
+    filtered_articles = [
+        article for article in all_articles
+        if not any(phrase in (article.get("title", "") + article.get("description", "")).lower() for phrase in non_news_phrases)
+    ]
+
+    unique_articles = {article['url']: article for article in filtered_articles}.values()
     shuffled_articles = list(unique_articles)
     random.shuffle(shuffled_articles)
     
