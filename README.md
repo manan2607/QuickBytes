@@ -32,7 +32,7 @@ It’s simple, clean, and always up-to-date — perfect for anyone who wants to 
 ---
 
 ## 📂 Repository Structure
-├── .github/workflows # GitHub Actions automation
+├── .github/workflows # GitHub Actions automation <br>
 ├── data/ # Cached news data
 ├── scripts/ # Scraper + summarizer scripts
 ├── site/ # Static site for GitHub Pages
