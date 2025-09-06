@@ -33,10 +33,10 @@ It’s simple, clean, and always up-to-date — perfect for anyone who wants to 
 
 ## 📂 Repository Structure
 ├── .github/workflows # GitHub Actions automation <br>
-├── data/ # Cached news data
-├── scripts/ # Scraper + summarizer scripts
-├── site/ # Static site for GitHub Pages
-└── README.md # This file
+├── data/ # Cached news data <br>
+├── scripts/ # Scraper + summarizer scripts <br>
+├── site/ # Static site for GitHub Pages <br>
+└── README.md # This file <br>
 
 
 ---
