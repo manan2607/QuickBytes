@@ -26,7 +26,6 @@ def fetch_india_news():
     ]
     source_string_in = ",".join(sources_in)
 
-    # API Call: Get trending news from the specified Indian sources
     params = {
         "sources": source_string_in,
         "sortBy": "popularity",
