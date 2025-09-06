@@ -8,13 +8,18 @@ def fetch_top_headlines():
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
+
+    # Using the 'everything' endpoint for a global search.
+    # The 'domains' parameter specifies a list of reputable international news sources.
+    # You can add or remove sources from this list as you see fit.
+    domains = "bbc.co.uk,reuters.com,theguardian.com,aljazeera.com,timesofindia.indiatimes.com"
     
-    url = f"https://newsapi.org/v2/top-headlines?country=us&apiKey={news_api_key}"
+    url = f"https://newsapi.org/v2/everything?domains={domains}&language=en&pageSize=10&apiKey={news_api_key}"
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
-        return data.get("articles", [])[:10]
+        return data.get("articles", [])
     except requests.RequestException as e:
         print(f"Error fetching news: {e}")
         return []
@@ -44,28 +49,28 @@ def generate_html_digest(articles):
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #e0e0e0;
             max-width: 800px;
             margin: 2rem auto;
             padding: 0 1rem;
-            background-color: #f8f9fa;
+            background-color: #121212;
         }}
         .container {{
-            background: #fff;
+            background: #1e1e1e;
             padding: 2rem;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }}
         h1 {{
             font-size: 2.5rem;
-            color: #007bff;
-            border-bottom: 2px solid #eee;
+            color: #bb86fc; /* A nice purple for contrast */
+            border-bottom: 2px solid #333;
             padding-bottom: 1rem;
         }}
         .article-item {{
             margin-bottom: 2rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #333;
         }}
         .article-item:last-child {{
             border-bottom: none;
@@ -73,11 +78,19 @@ def generate_html_digest(articles):
         h2 {{
             font-size: 1.5rem;
             margin-top: 0;
+            color: #f0f0f0;
         }}
         .source {{
             font-style: italic;
-            color: #6c757d;
+            color: #a0a0a0;
             font-size: 0.9rem;
+        }}
+        a {{
+            color: #bb86fc;
+            text-decoration: none;
+        }}
+        a:hover {{
+            text-decoration: underline;
         }}
     </style>
 </head>
@@ -85,7 +98,7 @@ def generate_html_digest(articles):
     <div class="container">
         <h1>🌍 Today in 2 Minutes – {today}</h1>
         <p>Your daily dose of the most important news, summarized and delivered straight to you.</p>
-        <hr>
+        <hr style="border-color: #333;">
 """
     if articles:
         for article in articles:
