@@ -3,7 +3,6 @@ import requests
 from datetime import datetime
 from transformers import pipeline
 import random
-import trafilatura
 
 # Load summarization model only once at the beginning for efficiency.
 try:
@@ -66,31 +65,22 @@ def fetch_diverse_news():
     
     return shuffled_articles[:10]
 
-def get_full_article_content(url):
-    """Scrapes the full text of an article from its URL."""
-    try:
-        downloaded = trafilatura.fetch_url(url)
-        if downloaded:
-            return trafilatura.extract(downloaded, favor_recall=True, include_comments=False, include_tables=False)
-        return None
-    except Exception as e:
-        print(f"Error scraping article content from {url}: {e}")
-        return None
-
-def summarize_article(text, fallback_text):
-    """Summarizes an article using the global Hugging Face model with fallback."""
+def summarize_article(text):
+    """Summarizes an article using the global Hugging Face model."""
+    # If the text is too short, just return the text itself.
+    # This prevents the summarizer from generating a weak or out-of-context summary.
     if not text or len(text) < 100 or global_summarizer is None:
-        return fallback_text if fallback_text and len(fallback_text) < 100 else "Summary not available."
+        return text
 
     try:
         summary = global_summarizer(text, max_length=60, min_length=40, do_sample=False)
         if summary and 'summary_text' in summary[0]:
             return summary[0]["summary_text"]
         else:
-            return fallback_text if fallback_text and len(fallback_text) < 100 else "Summary not available."
+            return text
     except Exception as e:
         print(f"Error summarizing text: {e}")
-        return fallback_text if fallback_text and len(fallback_text) < 100 else "Summary not available."
+        return text
 
 def generate_html_digest(articles):
     """Generates the full HTML content for the blog post."""
@@ -194,9 +184,7 @@ def generate_html_digest(articles):
             url = article.get("url", "#")
             description = article.get("description", "")
             
-            full_content = get_full_article_content(url)
-            
-            summary = summarize_article(full_content, description)
+            summary = summarize_article(description)
             
             html_content += f"""
         <div class="article-item">
