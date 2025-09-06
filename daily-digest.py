@@ -6,9 +6,11 @@ import random
 
 try:
     global_summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    print("Summarization model loaded successfully.")
 except Exception as e:
     global_summarizer = None
-    
+    print(f"Error loading summarization model: {e}")
+
 def fetch_india_news():
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
@@ -18,8 +20,15 @@ def fetch_india_news():
     
     base_url = "https://newsapi.org/v2/everything"
     
+    sources_in = [
+        "the-times-of-india", "google-news-in", "the-hindu",
+        "india-today", "ndtv", "financial-express"
+    ]
+    source_string_in = ",".join(sources_in)
+
+    # API Call: Get trending news from the specified Indian sources
     params = {
-        "q": '"India" OR "Indian" OR "Modi" OR "Indian politics" OR "BCCI" OR "Bollywood"',
+        "sources": source_string_in,
         "sortBy": "popularity",
         "language": "en",
         "pageSize": 20,
@@ -35,7 +44,7 @@ def fetch_india_news():
         print(f"Error fetching news: {e}")
             
     banned_sources = [
-        "google news", "google news (india)", "etf daily news",
+        "google news", "etf daily news",
         "prnewswire", "globenewswire", "marketwatch", "free republic"
     ]
     banned_phrases = ["bulletin", "quiz", "podcast", "review of", "the daily", "press release", "opinion", "blog"]
@@ -52,7 +61,10 @@ def fetch_india_news():
     seen_companies = set()
     company_keywords = ["apple", "google", "microsoft", "amazon", "tesla"]
     
-    for article in unique_articles:
+    shuffled_articles = list(unique_articles)
+    random.shuffle(shuffled_articles)
+    
+    for article in shuffled_articles:
         is_duplicate_topic = False
         for keyword in company_keywords:
             if keyword in article.get("title", "").lower() or keyword in article.get("description", "").lower():
