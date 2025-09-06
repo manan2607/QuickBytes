@@ -5,46 +5,45 @@ from transformers import pipeline
 import random
 
 def fetch_diverse_news():
-    """Fetches a diverse set of news articles from specific global sources."""
+    """Fetches a diverse set of news articles by topic and shuffles them."""
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
     
-    # Curated list of international news sources. Adding more sources here
-    # will increase diversity.
-    sources = [
-        "bbc-news",
-        "reuters",
-        "the-guardian-uk",
-        "the-washington-post",
-        "associated-press",
-        "abc-news-au",
-        "financial-times",
-        "wired"
+    topics = [
+        "artificial intelligence",
+        "climate change",
+        "global economy",
+        "scientific discovery",
+        "international politics",
+        "space exploration",
+        "medical research",
+        "movie industry",
+        "sports",
+        "culture"
     ]
     
-    source_string = ",".join(sources)
-    
-    # Use the 'top-headlines' endpoint with a list of sources for relevant news
-    base_url = "https://newsapi.org/v2/top-headlines"
+    base_url = "https://newsapi.org/v2/everything"
     all_articles = []
     
-    params = {
-        "sources": source_string,
-        "language": "en",
-        "pageSize": 20,
-        "apiKey": news_api_key
-    }
-    
-    try:
-        response = requests.get(base_url, params=params)
-        response.raise_for_status()
-        data = response.json()
-        all_articles.extend(data.get("articles", []))
-    except requests.RequestException as e:
-        print(f"Error fetching news: {e}")
+    for topic in topics:
+        params = {
+            "q": topic,
+            "sortBy": "publishedAt",
+            "language": "en",
+            "pageSize": 2,
+            "apiKey": news_api_key
+        }
+        
+        try:
+            response = requests.get(base_url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            all_articles.extend(data.get("articles", []))
+        except requests.RequestException as e:
+            print(f"Error fetching news for topic '{topic}': {e}")
             
-    # List of sources and phrases to filter out generic content
+    # Filter out articles with non-news phrases or sources
     banned_sources = [
         "google news", "google news (india)", "etf daily news",
         "prnewswire", "globenewswire", "marketwatch", "free republic"
@@ -87,7 +86,7 @@ def generate_html_digest(articles):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByteBriefs Daily Digest – {today}</title>
+    <title>QuickBytess Daily Digest – {today}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Roboto&display=swap" rel="stylesheet">
@@ -168,7 +167,7 @@ def generate_html_digest(articles):
 </head>
 <body>
     <div class="container">
-        <h1>ByteBriefs Daily Digest – {today}</h1>
+        <h1>QuickBytess Daily Digest – {today}</h1>
         <p class="summary">Your daily dose of the most important headlines, curated and summarized in just a few minutes.</p>
         <hr style="border-color: #333;">
 """
@@ -198,7 +197,7 @@ def generate_html_digest(articles):
     html_content += f"""
         <div class="cta">
             <hr style="border-color: #333;">
-            <p>💌 Like this ByteBrief? <br> Get it daily in your inbox for FREE → <a class="cta-link" href="#">Subscribe Here</a></p>
+            <p>💌 Like this QuickBytes? <br> Get it daily in your inbox for FREE → <a class="cta-link" href="#">Subscribe Here</a></p>
         </div>
     </div>
 </body>
