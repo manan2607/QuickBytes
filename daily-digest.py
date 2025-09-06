@@ -2,27 +2,52 @@ import os
 import requests
 from datetime import datetime
 from transformers import pipeline
+import random
 
-def fetch_top_headlines():
-    """Fetches top 5-10 headlines using a free news API."""
+def fetch_diverse_news():
+    """Fetches a diverse set of news articles by topic and shuffles them."""
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
-
-    # Using the 'everything' endpoint for a global search.
-    # The 'domains' parameter specifies a list of reputable international news sources.
-    # You can add or remove sources from this list as you see fit.
-    domains = "bbc.co.uk,reuters.com,theguardian.com,aljazeera.com,timesofindia.indiatimes.com"
     
-    url = f"https://newsapi.org/v2/everything?domains={domains}&language=en&pageSize=10&apiKey={news_api_key}"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        return data.get("articles", [])
-    except requests.RequestException as e:
-        print(f"Error fetching news: {e}")
-        return []
+    topics = [
+        "artificial intelligence",
+        "climate change",
+        "global economy",
+        "scientific discovery",
+        "international politics",
+        "space exploration",
+        "medical research",
+        "movie industry",
+        "sports",
+        "culture"
+    ]
+    
+    base_url = "https://newsapi.org/v2/everything"
+    all_articles = []
+    
+    for topic in topics:
+        params = {
+            "q": topic,
+            "sortBy": "publishedAt",
+            "language": "en",
+            "pageSize": 2,
+            "apiKey": news_api_key
+        }
+        
+        try:
+            response = requests.get(base_url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            all_articles.extend(data.get("articles", []))
+        except requests.RequestException as e:
+            print(f"Error fetching news for topic '{topic}': {e}")
+            
+    unique_articles = {article['url']: article for article in all_articles}.values()
+    shuffled_articles = list(unique_articles)
+    random.shuffle(shuffled_articles)
+    
+    return shuffled_articles[:10]
 
 def summarize_article(text):
     """Summarizes an article using the Hugging Face model."""
@@ -63,7 +88,7 @@ def generate_html_digest(articles):
         }}
         h1 {{
             font-size: 2.5rem;
-            color: #bb86fc; /* A nice purple for contrast */
+            color: #bb86fc;
             border-bottom: 2px solid #333;
             padding-bottom: 1rem;
         }}
@@ -133,7 +158,7 @@ def generate_html_digest(articles):
     return html_content
 
 if __name__ == "__main__":
-    articles = fetch_top_headlines()
+    articles = fetch_diverse_news()
     html_content = generate_html_digest(articles)
     
     with open("index.html", "w", encoding="utf-8") as f:
