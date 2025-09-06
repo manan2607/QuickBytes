@@ -13,37 +13,49 @@ except Exception as e:
     print(f"Error loading summarization model: {e}")
 
 def fetch_india_news():
-    """Fetches a diverse set of news articles from specific global sources, filtered for India."""
+    """Fetches a diverse set of news articles from India and international sources."""
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
     
-    # Curated list of news sources with a focus on India and international news.
-    sources = [
-        "the-times-of-india", "google-news-in", "bbc-news",
-        "reuters", "the-guardian-uk", "associated-press",
-        "techcrunch", "espn", "bloomberg"
-    ]
-    
-    source_string = ",".join(sources)
-    
-    base_url = "https://newsapi.org/v2/top-headlines"
     all_articles = []
     
-    params = {
-        "sources": source_string,
+    # Use the 'top-headlines' endpoint to fetch news from India directly
+    base_url_in = "https://newsapi.org/v2/top-headlines"
+    
+    params_in = {
+        "country": "in",
         "language": "en",
-        "pageSize": 20,
+        "pageSize": 10,
         "apiKey": news_api_key
     }
     
     try:
-        response = requests.get(base_url, params=params)
+        response = requests.get(base_url_in, params=params_in)
         response.raise_for_status()
         data = response.json()
         all_articles.extend(data.get("articles", []))
     except requests.RequestException as e:
-        print(f"Error fetching news: {e}")
+        print(f"Error fetching India news: {e}")
+
+    # Use the 'everything' endpoint to find India-related news from global sources
+    base_url_global = "https://newsapi.org/v2/everything"
+    
+    params_global = {
+        "q": '"India" OR "Indian"',
+        "sortBy": "publishedAt",
+        "language": "en",
+        "pageSize": 10,
+        "apiKey": news_api_key
+    }
+
+    try:
+        response = requests.get(base_url_global, params=params_global)
+        response.raise_for_status()
+        data = response.json()
+        all_articles.extend(data.get("articles", []))
+    except requests.RequestException as e:
+        print(f"Error fetching global news: {e}")
             
     # Filter out articles with non-news phrases or sources
     banned_sources = [
@@ -58,10 +70,10 @@ def fetch_india_news():
         and article.get("source", {}).get("name", "").lower() not in banned_sources
     ]
 
-    # Remove duplicates and return the top 10 most recent articles
+    # Remove duplicates based on URL and shuffle
     unique_articles = {article['url']: article for article in filtered_articles}.values()
     shuffled_articles = list(unique_articles)
-    shuffled_articles.sort(key=lambda x: x['publishedAt'], reverse=True)
+    random.shuffle(shuffled_articles)
     
     return shuffled_articles[:10]
 
@@ -71,6 +83,7 @@ def summarize_article(text):
         return text
 
     try:
+        # Keep summary length short as the input text is a brief description
         summary = global_summarizer(text, max_length=60, min_length=40, do_sample=False)
         if summary and 'summary_text' in summary[0]:
             return summary[0]["summary_text"]
