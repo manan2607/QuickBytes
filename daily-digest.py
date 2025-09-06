@@ -29,25 +29,66 @@ def summarize_article(text):
         print(f"Error summarizing text: {e}")
         return "Summary not available."
 
-def generate_digest_markdown(articles):
-    """Generates the full Markdown content for the blog post, including Jekyll front matter."""
-    today = datetime.now()
-    post_title = f"Pocket-Sized News Digest – {today.strftime('%B %d, %Y')}"
+def generate_html_digest(articles):
+    """Generates the full HTML content for the blog post."""
+    today = datetime.now().strftime("%B %d, %Y")
     
-    # Jekyll requires a YAML front matter at the top of the Markdown file
-    markdown_content = f"""---
-layout: post
-title: "{post_title}"
-date: {today.isoformat()}
----
-
-Your daily dose of the most important news, summarized and delivered straight to you.
-
----
-
+    html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickBytes Daily Digest – {today}</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background-color: #f8f9fa;
+        }}
+        .container {{
+            background: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }}
+        h1 {{
+            font-size: 2.5rem;
+            color: #007bff;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 1rem;
+        }}
+        .article-item {{
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }}
+        .article-item:last-child {{
+            border-bottom: none;
+        }}
+        h2 {{
+            font-size: 1.5rem;
+            margin-top: 0;
+        }}
+        .source {{
+            font-style: italic;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Today in 2 Minutes – {today}</h1>
+        <p>Your daily dose of the most important news, summarized and delivered straight to you.</p>
+        <hr>
 """
     if articles:
-        for i, article in enumerate(articles, 1):
+        for article in articles:
             title = article.get("title", "No Title")
             source = article.get("source", {}).get("name", "Unknown Source")
             url = article.get("url", "#")
@@ -57,26 +98,32 @@ Your daily dose of the most important news, summarized and delivered straight to
             
             summary = summarize_article(text_to_summarize)
             
-            markdown_content += f"### {i}. {title}\n"
-            markdown_content += f"> **Source:** [{source}]({url})\n\n"
-            markdown_content += f"{summary}\n\n"
+            html_content += f"""
+        <div class="article-item">
+            <h2>{title}</h2>
+            <p class="source">Source: <a href="{url}" target="_blank">{source}</a></p>
+            <p>{summary}</p>
+        </div>
+"""
     else:
-        markdown_content += "No articles could be fetched today. Please check the news API.\n\n"
-
-    return post_title, markdown_content
+        html_content += """
+        <div class="article-item">
+            <p>No articles could be fetched today. Please check the news API.</p>
+        </div>
+"""
+    
+    html_content += """
+    </div>
+</body>
+</html>
+"""
+    return html_content
 
 if __name__ == "__main__":
     articles = fetch_top_headlines()
-    post_title, markdown_content = generate_digest_markdown(articles)
+    html_content = generate_html_digest(articles)
     
-    # Create a Jekyll-compliant filename (e.g., 2025-09-06-pocket-sized-news-digest.md)
-    filename = f"{datetime.now().strftime('%Y-%m-%d')}-{post_title.replace(' ', '-').lower()}.md"
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
     
-    # Ensure the _posts directory exists
-    os.makedirs("_posts", exist_ok=True)
-    
-    filepath = os.path.join("_posts", filename)
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(markdown_content)
-    
-    print(f"Daily digest generated and saved to {filepath}")
+    print("Daily digest generated and saved to index.html")
