@@ -10,7 +10,8 @@ def fetch_diverse_news():
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
     
-    # Curated list of international news sources
+    # Curated list of international news sources. Adding more sources here
+    # will increase diversity.
     sources = [
         "bbc-news",
         "reuters",
@@ -18,7 +19,6 @@ def fetch_diverse_news():
         "the-washington-post",
         "associated-press",
         "abc-news-au",
-        "google-news",
         "financial-times",
         "wired"
     ]
@@ -44,12 +44,17 @@ def fetch_diverse_news():
     except requests.RequestException as e:
         print(f"Error fetching news: {e}")
             
-    # Filter out articles with non-news phrases or sources like 'Google News (India)'
-    non_news_phrases = ["bulletin", "quiz", "podcast", "review of", "the daily"]
+    # List of sources and phrases to filter out generic content
+    banned_sources = [
+        "google news", "google news (india)", "etf daily news",
+        "prnewswire", "globenewswire", "marketwatch", "free republic"
+    ]
+    banned_phrases = ["bulletin", "quiz", "podcast", "review of", "the daily", "press release"]
+    
     filtered_articles = [
         article for article in all_articles
-        if not any(phrase in (article.get("title", "") + article.get("description", "")).lower() for phrase in non_news_phrases)
-        and article.get("source", {}).get("name", "").lower() not in ["google news (india)", "google news", "etf daily news", "prnewswire", "globenewswire"]
+        if not any(phrase in (article.get("title", "") + article.get("description", "")).lower() for phrase in banned_phrases)
+        and article.get("source", {}).get("name", "").lower() not in banned_sources
     ]
 
     # Remove duplicates and return the top 10 most recent articles
@@ -90,7 +95,7 @@ def generate_html_digest(articles):
         body {{
             font-family: 'Roboto', sans-serif;
             line-height: 1.6;
-            color: #B0B0B0;
+            color: #e0e0e0;
             max-width: 800px;
             margin: 2rem auto;
             padding: 0 1rem;
@@ -138,7 +143,7 @@ def generate_html_digest(articles):
             margin-top: 0.5rem;
         }}
         a {{
-            color: #FF9800; /* Accent color */
+            color: #FF9800;
             text-decoration: none;
         }}
         a:hover {{
