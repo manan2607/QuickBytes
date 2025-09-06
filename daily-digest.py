@@ -30,7 +30,7 @@ def fetch_india_news():
         "sources": source_string_in,
         "sortBy": "popularity",
         "language": "en",
-        "pageSize": 20,
+        "pageSize": 100,
         "apiKey": news_api_key
     }
     
