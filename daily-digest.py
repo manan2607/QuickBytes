@@ -2,6 +2,7 @@ import os
 import requests
 from datetime import datetime
 from transformers import pipeline
+import random
 
 # Load summarization model only once at the beginning for efficiency.
 try:
@@ -17,25 +18,40 @@ def fetch_india_news():
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
     
-    base_url = "https://newsapi.org/v2/everything"
-    
-    params = {
-        "q": '"India" OR "Indian" OR "Modi" OR "Indian politics" OR "BCCI" OR "Bollywood"',
-        "sortBy": "popularity",
-        "language": "en",
-        "pageSize": 20,
-        "apiKey": news_api_key
-    }
-    
     all_articles = []
     
+    # API Call 1: Get top headlines from India using country code
+    base_url_in = "https://newsapi.org/v2/top-headlines"
+    params_in = {
+        "country": "in",
+        "language": "en",
+        "pageSize": 10,
+        "apiKey": news_api_key
+    }
     try:
-        response = requests.get(base_url, params=params)
+        response = requests.get(base_url_in, params=params_in)
         response.raise_for_status()
         data = response.json()
         all_articles.extend(data.get("articles", []))
     except requests.RequestException as e:
-        print(f"Error fetching news: {e}")
+        print(f"Error fetching top headlines from India: {e}")
+
+    # API Call 2: Search for popular articles about India from all sources
+    base_url_global = "https://newsapi.org/v2/everything"
+    params_global = {
+        "q": '"India" OR "Indian" OR "Modi" OR "BCCI" OR "Indian politics"',
+        "sortBy": "popularity",
+        "language": "en",
+        "pageSize": 10,
+        "apiKey": news_api_key
+    }
+    try:
+        response = requests.get(base_url_global, params=params_global)
+        response.raise_for_status()
+        data = response.json()
+        all_articles.extend(data.get("articles", []))
+    except requests.RequestException as e:
+        print(f"Error fetching global news about India: {e}")
             
     # Filter out articles with non-news phrases or sources
     banned_sources = [
@@ -50,11 +66,12 @@ def fetch_india_news():
         and article.get("source", {}).get("name", "").lower() not in banned_sources
     ]
 
-    # Remove duplicates based on URL and return the top 10 articles
+    # Remove duplicates and shuffle to mix sources and topics
     unique_articles = {article['url']: article for article in filtered_articles}.values()
-    sorted_articles = list(unique_articles)
+    shuffled_articles = list(unique_articles)
+    random.shuffle(shuffled_articles)
     
-    return sorted_articles[:10]
+    return shuffled_articles[:10]
 
 def summarize_article(text):
     """Summarizes an article using the global Hugging Face model."""
