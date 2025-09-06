@@ -6,11 +6,9 @@ import random
 
 try:
     global_summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-    print("Summarization model loaded successfully.")
 except Exception as e:
     global_summarizer = None
-    print(f"Error loading summarization model: {e}")
-
+    
 def fetch_india_news():
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
@@ -18,51 +16,26 @@ def fetch_india_news():
     
     all_articles = []
     
-    # API Call 1: Get top headlines from India using country code
-    base_url_in = "https://newsapi.org/v2/top-headlines"
+    base_url = "https://newsapi.org/v2/everything"
     
-    # Added new sources for Indian news
-    sources_in = [
-        "the-times-of-india", "google-news-in", "the-hindu",
-        "india-today", "ndtv", "financial-express"
-    ]
-    source_string_in = ",".join(sources_in)
-
-    params_in = {
-        "sources": source_string_in,
-        "language": "en",
-        "pageSize": 10,
-        "apiKey": news_api_key
-    }
-    
-    try:
-        response = requests.get(base_url_in, params=params_in)
-        response.raise_for_status()
-        data = response.json()
-        all_articles.extend(data.get("articles", []))
-    except requests.RequestException as e:
-        print(f"Error fetching top headlines from India: {e}")
-
-    # API Call 2: Search for popular articles about India from all sources
-    base_url_global = "https://newsapi.org/v2/everything"
-    params_global = {
-        "q": '"India" OR "Indian" OR "Modi" OR "BCCI" OR "Indian politics"',
+    params = {
+        "q": '"India" OR "Indian" OR "Modi" OR "Indian politics" OR "BCCI" OR "Bollywood"',
         "sortBy": "popularity",
         "language": "en",
-        "pageSize": 10,
+        "pageSize": 20,
         "apiKey": news_api_key
     }
+    
     try:
-        response = requests.get(base_url_global, params=params_global)
+        response = requests.get(base_url, params=params)
         response.raise_for_status()
         data = response.json()
         all_articles.extend(data.get("articles", []))
     except requests.RequestException as e:
-        print(f"Error fetching global news about India: {e}")
+        print(f"Error fetching news: {e}")
             
-    # Filter out articles with non-news phrases or sources
     banned_sources = [
-        "google news", "etf daily news",
+        "google news", "google news (india)", "etf daily news",
         "prnewswire", "globenewswire", "marketwatch", "free republic"
     ]
     banned_phrases = ["bulletin", "quiz", "podcast", "review of", "the daily", "press release", "opinion", "blog"]
@@ -73,7 +46,6 @@ def fetch_india_news():
         and article.get("source", {}).get("name", "").lower() not in banned_sources
     ]
 
-    # Remove duplicates and ensure a diverse range of companies
     unique_articles = {article['url']: article for article in filtered_articles}.values()
     
     final_digest = []
