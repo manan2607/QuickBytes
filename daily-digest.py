@@ -3,7 +3,9 @@ import requests
 from datetime import datetime
 from transformers import pipeline
 import random
+import trafilatura
 
+# Load summarization model only once at the beginning for efficiency.
 try:
     global_summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
     print("Summarization model loaded successfully.")
@@ -19,6 +21,7 @@ def fetch_india_news():
     
     all_articles = []
     
+    # API Call 1: Get top headlines from India using country code
     base_url_in = "https://newsapi.org/v2/top-headlines"
     params_in = {
         "country": "in",
@@ -34,6 +37,7 @@ def fetch_india_news():
     except requests.RequestException as e:
         print(f"Error fetching top headlines from India: {e}")
 
+    # API Call 2: Search for popular articles about India from all sources
     base_url_global = "https://newsapi.org/v2/everything"
     params_global = {
         "q": '"India" OR "Indian" OR "Modi" OR "BCCI" OR "Indian politics"',
@@ -50,6 +54,7 @@ def fetch_india_news():
     except requests.RequestException as e:
         print(f"Error fetching global news about India: {e}")
             
+    # Filter out articles with non-news phrases or sources
     banned_sources = [
         "google news", "google news (india)", "etf daily news",
         "prnewswire", "globenewswire", "marketwatch", "free republic"
@@ -62,26 +67,41 @@ def fetch_india_news():
         and article.get("source", {}).get("name", "").lower() not in banned_sources
     ]
 
+    # Remove duplicates and return the top 10 most recent articles
     unique_articles = {article['url']: article for article in filtered_articles}.values()
     shuffled_articles = list(unique_articles)
-    # random.shuffle(shuffled_articles)
+    random.shuffle(shuffled_articles)
     
     return shuffled_articles[:10]
 
-def summarize_article(text):
-    """Summarizes an article using the global Hugging Face model."""
-    if not text or len(text) < 100 or global_summarizer is None:
-        return text
+def get_full_article_content(url):
+    """Scrapes the full text of an article from its URL with improved robustness."""
+    try:
+        downloaded = trafilatura.fetch_url(url)
+        if downloaded:
+            text = trafilatura.extract(downloaded, dedup=True, favor_precision=True, include_comments=False, include_tables=False)
+            if text and len(text) > 100:
+                return text[:5000]
+            return text
+        return None
+    except Exception as e:
+        print(f"Error scraping article content from {url}: {e}")
+        return None
+
+def summarize_article(text, fallback_text):
+    """Summarizes an article using the global Hugging Face model with fallback."""
+    if not text or len(text) < 200 or global_summarizer is None:
+        return fallback_text if fallback_text and len(fallback_text) < 200 else "Summary not available."
 
     try:
-        summary = global_summarizer(text, max_length=60, min_length=40, do_sample=False)
+        summary = global_summarizer(text, max_length=150, min_length=120, do_sample=False)
         if summary and 'summary_text' in summary[0]:
             return summary[0]["summary_text"]
         else:
-            return text
+            return fallback_text if fallback_text and len(fallback_text) < 200 else "Summary not available."
     except Exception as e:
         print(f"Error summarizing text: {e}")
-        return text
+        return fallback_text if fallback_text and len(fallback_text) < 200 else "Summary not available."
 
 def generate_html_digest(articles):
     """Generates the full HTML content for the blog post."""
@@ -93,7 +113,7 @@ def generate_html_digest(articles):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickBytess Daily Digest – {today}</title>
+    <title>ByteBriefs Daily Digest – {today}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Roboto&display=swap" rel="stylesheet">
@@ -174,7 +194,7 @@ def generate_html_digest(articles):
 </head>
 <body>
     <div class="container">
-        <h1>QuickBytess Daily Digest – {today}</h1>
+        <h1>ByteBriefs Daily Digest – {today}</h1>
         <p class="summary">Your daily dose of the most important headlines, curated and summarized in just a few minutes.</p>
         <hr style="border-color: #333;">
 """
@@ -185,7 +205,9 @@ def generate_html_digest(articles):
             url = article.get("url", "#")
             description = article.get("description", "")
             
-            summary = summarize_article(description)
+            full_content = get_full_article_content(url)
+            
+            summary = summarize_article(full_content, description)
             
             html_content += f"""
         <div class="article-item">
@@ -204,7 +226,7 @@ def generate_html_digest(articles):
     html_content += f"""
         <div class="cta">
             <hr style="border-color: #333;">
-            <p>💌 Like this QuickBytes? <br> Get it daily in your inbox for FREE → <a class="cta-link" href="#">Subscribe Here</a></p>
+            <p>💌 Like this ByteBrief? <br> Get it daily in your inbox for FREE → <a class="cta-link" href="#">Subscribe Here</a></p>
         </div>
     </div>
 </body>
