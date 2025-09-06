@@ -57,7 +57,7 @@ PRs welcome!
 ---
 
 ## 🌐 Live Demo
-👉 [QuickBytes on GitHub Pages](https://your-username.github.io/quickbytes)  
+👉 [QuickBytes on GitHub Pages]((https://manan2607.github.io/QuickBytes/))  
 
 ---
 
