@@ -5,7 +5,7 @@ from transformers import pipeline
 import random
 import trafilatura
 
-# Global summarizer pipeline to avoid reloading the model multiple times
+# Load summarization model only once at the beginning for efficiency.
 try:
     global_summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
     print("Summarization model loaded successfully.")
@@ -21,16 +21,9 @@ def fetch_diverse_news():
     
     # Curated list of international news sources.
     sources = [
-        "bbc-news",
-        "reuters",
-        "the-guardian-uk",
-        "the-washington-post",
-        "associated-press",
-        "abc-news-au",
-        "financial-times",
-        "wired",
-        "techcrunch",
-        "espn"
+        "bbc-news", "reuters", "the-guardian-uk", "the-washington-post",
+        "associated-press", "abc-news-au", "financial-times", "wired",
+        "techcrunch", "espn", "bloomberg", "the-wall-street-journal"
     ]
     
     source_string = ",".join(sources)
@@ -73,21 +66,6 @@ def fetch_diverse_news():
     
     return shuffled_articles[:10]
 
-def summarize_article(text):
-    """Summarizes an article using the global Hugging Face model."""
-    if not text or len(text) < 100 or global_summarizer is None:
-        return text
-
-    try:
-        summary = global_summarizer(text, max_length=60, min_length=40, do_sample=False)
-        if summary and 'summary_text' in summary[0]:
-            return summary[0]["summary_text"]
-        else:
-            return text
-    except Exception as e:
-        print(f"Error summarizing text: {e}")
-        return text
-
 def get_full_article_content(url):
     """Scrapes the full text of an article from its URL."""
     try:
@@ -98,6 +76,21 @@ def get_full_article_content(url):
     except Exception as e:
         print(f"Error scraping article content from {url}: {e}")
         return None
+
+def summarize_article(text, fallback_text):
+    """Summarizes an article using the global Hugging Face model with fallback."""
+    if not text or len(text) < 100 or global_summarizer is None:
+        return fallback_text if fallback_text and len(fallback_text) < 100 else "Summary not available."
+
+    try:
+        summary = global_summarizer(text, max_length=60, min_length=40, do_sample=False)
+        if summary and 'summary_text' in summary[0]:
+            return summary[0]["summary_text"]
+        else:
+            return fallback_text if fallback_text and len(fallback_text) < 100 else "Summary not available."
+    except Exception as e:
+        print(f"Error summarizing text: {e}")
+        return fallback_text if fallback_text and len(fallback_text) < 100 else "Summary not available."
 
 def generate_html_digest(articles):
     """Generates the full HTML content for the blog post."""
@@ -199,10 +192,11 @@ def generate_html_digest(articles):
             title = article.get("title", "No Title")
             source = article.get("source", {}).get("name", "Unknown Source")
             url = article.get("url", "#")
+            description = article.get("description", "")
             
             full_content = get_full_article_content(url)
             
-            summary = summarize_article(full_content) if full_content else article.get("description", "Summary not available.")
+            summary = summarize_article(full_content, description)
             
             html_content += f"""
         <div class="article-item">
