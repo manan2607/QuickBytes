@@ -3,7 +3,6 @@ import requests
 from datetime import datetime
 from transformers import pipeline
 import random
-import trafilatura
 
 # Load summarization model only once at the beginning for efficiency.
 try:
@@ -13,17 +12,17 @@ except Exception as e:
     global_summarizer = None
     print(f"Error loading summarization model: {e}")
 
-def fetch_diverse_news():
-    """Fetches a diverse set of news articles from specific global sources."""
+def fetch_india_news():
+    """Fetches a diverse set of news articles from specific global sources, filtered for India."""
     news_api_key = os.environ.get("NEWS_API_KEY")
     if not news_api_key:
         raise ValueError("NEWS_API_KEY environment variable not set.")
     
-    # Curated list of international news sources.
+    # Curated list of news sources with a focus on India and international news.
     sources = [
-        "bbc-news", "reuters", "the-guardian-uk", "the-washington-post",
-        "associated-press", "abc-news-au", "financial-times", "wired",
-        "techcrunch", "espn", "bloomberg", "the-wall-street-journal"
+        "the-times-of-india", "google-news-in", "bbc-news",
+        "reuters", "the-guardian-uk", "associated-press",
+        "techcrunch", "espn", "bloomberg"
     ]
     
     source_string = ",".join(sources)
@@ -48,8 +47,8 @@ def fetch_diverse_news():
             
     # Filter out articles with non-news phrases or sources
     banned_sources = [
-        "google news", "google news (india)", "etf daily news",
-        "prnewswire", "globenewswire", "marketwatch", "free republic", "the times of india"
+        "google news", "etf daily news",
+        "prnewswire", "globenewswire", "marketwatch", "free republic"
     ]
     banned_phrases = ["bulletin", "quiz", "podcast", "review of", "the daily", "press release", "opinion", "blog"]
     
@@ -66,39 +65,20 @@ def fetch_diverse_news():
     
     return shuffled_articles[:10]
 
-def get_full_article_content(url):
-    """Scrapes the full text of an article from its URL with improved robustness."""
-    try:
-        downloaded = trafilatura.fetch_url(url)
-        if downloaded:
-            # Use 'dedup=True' to remove duplicates within the same text.
-            # Use 'favor_precision=True' to get the main article content.
-            # These options prevent scraping junk content from a website.
-            text = trafilatura.extract(downloaded, dedup=True, favor_precision=True, include_comments=False, include_tables=False)
-            if text and len(text) > 100:
-                # Truncate very long texts to prevent model overload
-                return text[:5000]
-            return text
-        return None
-    except Exception as e:
-        print(f"Error scraping article content from {url}: {e}")
-        return None
-
-def summarize_article(text, fallback_text):
-    """Summarizes an article using the global Hugging Face model with fallback."""
-    if not text or len(text) < 200 or global_summarizer is None:
-        return fallback_text if fallback_text and len(fallback_text) < 200 else "Summary not available."
+def summarize_article(text):
+    """Summarizes an article using the global Hugging Face model."""
+    if not text or len(text) < 100 or global_summarizer is None:
+        return text
 
     try:
-        # Increased max_length for a more detailed summary
-        summary = global_summarizer(text, max_length=150, min_length=120, do_sample=False)
+        summary = global_summarizer(text, max_length=60, min_length=40, do_sample=False)
         if summary and 'summary_text' in summary[0]:
             return summary[0]["summary_text"]
         else:
-            return fallback_text if fallback_text and len(fallback_text) < 200 else "Summary not available."
+            return text
     except Exception as e:
         print(f"Error summarizing text: {e}")
-        return fallback_text if fallback_text and len(fallback_text) < 200 else "Summary not available."
+        return text
 
 def generate_html_digest(articles):
     """Generates the full HTML content for the blog post."""
@@ -202,9 +182,7 @@ def generate_html_digest(articles):
             url = article.get("url", "#")
             description = article.get("description", "")
             
-            full_content = get_full_article_content(url)
-            
-            summary = summarize_article(full_content, description)
+            summary = summarize_article(description)
             
             html_content += f"""
         <div class="article-item">
@@ -232,7 +210,7 @@ def generate_html_digest(articles):
     return html_content
 
 if __name__ == "__main__":
-    articles = fetch_diverse_news()
+    articles = fetch_india_news()
     html_content = generate_html_digest(articles)
     
     with open("index.html", "w", encoding="utf-8") as f:
