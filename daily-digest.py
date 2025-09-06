@@ -75,7 +75,7 @@ def fetch_india_news():
         
         if not is_duplicate_topic:
             final_digest.append(article)
-            if len(final_digest) >= 10:
+            if len(final_digest) >= 25:
                 break
     
     return final_digest
