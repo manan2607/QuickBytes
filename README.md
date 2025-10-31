@@ -5,7 +5,7 @@ QuickBytes is a **fully automated daily news digest** that scrapes top trending 
 It’s simple, clean, and always up-to-date — perfect for anyone who wants to stay informed in minutes.  
 
 ---
-
+ 
 ## 🚀 Features
 - **Automated Fetching**: A GitHub Action runs daily to scrape trending Indian news.  
 - **AI Summarization**: Uses Hugging Face transformers to generate concise, easy-to-read summaries.  
